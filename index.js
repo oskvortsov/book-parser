@@ -3,6 +3,7 @@ const natural = require('natural');
 const translate = require('@iamtraction/google-translate');
 const fs = require('fs');
 const path = require('path');
+const { loadKnownWords } = require('./known-words');
 
 // Инициализация лемматизатора для английского языка
 const tokenizer = new natural.WordTokenizer();
@@ -13,9 +14,11 @@ const wordnet = new WordNet();
 
 // Используем WordNet для лемматизации
 class WordProcessor {
-  constructor() {
+  constructor(options = {}) {
     this.wordFrequency = new Map();
     this.lemmaCache = new Map(); // Кэш для леммы
+    this.excludeKnownWords = options.excludeKnownWords !== false; // По умолчанию true
+    this.knownWords = this.excludeKnownWords ? loadKnownWords() : new Set();
     this.stopWords = new Set([
       // Articles
       'the', 'a', 'an',
@@ -124,6 +127,10 @@ class WordProcessor {
       return null;
     }
 
+    // Пропускаем известные слова (если включена фильтрация)
+    if (this.excludeKnownWords && this.knownWords.has(normalized)) {
+      return null;
+    }
 
     return normalized;
   }
@@ -163,14 +170,14 @@ class WordProcessor {
 }
 
 // Парсинг EPUB книги
-async function parseEpubBook(epubPath) {
+async function parseEpubBook(epubPath, options = {}) {
   return new Promise((resolve, reject) => {
     const epub = new EPub(epubPath);
 
     epub.on('error', reject);
 
     epub.on('end', async () => {
-      const processor = new WordProcessor();
+      const processor = new WordProcessor(options);
       const chapters = epub.flow;
 
       console.log(`📖 Найдено глав: ${chapters.length}`);
@@ -265,6 +272,7 @@ function saveResults(words, outputPath) {
 // Главная функция
 async function main() {
   const args = process.argv.slice(2);
+  const { getKnownWordsCount } = require('./known-words');
 
   if (args.length === 0) {
 
@@ -277,6 +285,7 @@ async function main() {
     Опции:
       --no-translate              Отключить перевод (быстрый режим)
       --min-freq <число>          Минимальная частота слова (по умолчанию: 1)
+      --include-known             Включить известные слова (по умолчанию: исключены)
     
     Примеры:
       node index.js ./book.epub                         # Переводит топ-100 слов
@@ -285,16 +294,21 @@ async function main() {
       node index.js ./book.epub --no-translate          # Без перевода
       node index.js ./book.epub 100 --min-freq 5        # Только слова встречающиеся >= 5 раз
       node index.js ./book.epub --no-translate --min-freq 10  # Без перевода, слова >= 10 раз
+      node index.js ./book.epub --include-known         # Не исключать известные слова
+    
+    Управление известными словами:
+      npm run swipe                # Открыть страницу для сортировки слов (Tinder-стиль)
     
     Что делает программа:
       1. Парсит EPUB файл
       2. Извлекает весь текст
       3. Нормализует слова (приводит к базовой форме)
       4. Подсчитывает частоту каждого слова
-      5. Фильтрует по минимальной частоте (опционально)
-      6. Сортирует по частоте встречаемости
-      7. Переводит топ N слов с английского на русский (опционально)
-      8. Сохраняет результаты в JSON и TXT файлы
+      5. Исключает известные слова из known-words.json
+      6. Фильтрует по минимальной частоте (опционально)
+      7. Сортирует по частоте встречаемости
+      8. Переводит топ N слов с английского на русский (опционально)
+      9. Сохраняет результаты в JSON и TXT файлы
   `);
 
     process.exit(1);
@@ -304,6 +318,10 @@ async function main() {
 
   // Проверяем флаг --no-translate
   const noTranslate = args.includes('--no-translate');
+
+  // Проверяем флаг --include-known
+  const includeKnown = args.includes('--include-known');
+  const excludeKnownWords = !includeKnown;
 
   // Получаем минимальную частоту слов
   let minFrequency = 1;
@@ -334,10 +352,15 @@ async function main() {
   }
 
   try {
-    console.log(`\n🚀 Начинаем обработку: ${epubPath}\n`);
+    const knownWordsCount = getKnownWordsCount();
+    console.log(`\n🚀 Начинаем обработку: ${epubPath}`);
+    if (knownWordsCount > 0 && excludeKnownWords) {
+      console.log(`📝 Исключаем ${knownWordsCount} известных слов из known-words.json`);
+    }
+    console.log();
 
     // Парсим книгу
-    const processor = await parseEpubBook(epubPath);
+    const processor = await parseEpubBook(epubPath, { excludeKnownWords });
     const allWords = processor.getSortedWords(1); // Все слова для статистики
     const sortedWords = processor.getSortedWords(minFrequency); // Отфильтрованные слова
 

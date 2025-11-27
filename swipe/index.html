@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Swiper - Сортировка слов</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: white;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .stats {
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .card-container {
+      position: relative;
+      width: 320px;
+      height: 400px;
+      perspective: 1000px;
+    }
+
+    .card {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      user-select: none;
+    }
+
+    .card:active {
+      cursor: grabbing;
+    }
+
+    .card.swiping-left {
+      transform: translateX(-100px) rotate(-15deg);
+      opacity: 0;
+    }
+
+    .card.swiping-right {
+      transform: translateX(100px) rotate(15deg);
+      opacity: 0;
+    }
+
+    .word {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .translation {
+      font-size: 1.3rem;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .count {
+      font-size: 0.9rem;
+      color: #999;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 40px;
+      margin-top: 30px;
+    }
+
+    .btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 1.8rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn:hover {
+      transform: scale(1.1);
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-know {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+      box-shadow: 0 5px 20px rgba(17, 153, 142, 0.4);
+    }
+
+    .btn-keep {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
+    }
+
+    .instructions {
+      color: rgba(255,255,255,0.8);
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .instructions span {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px;
+      margin: 0 4px;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: bold;
+      color: white;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    .overlay-know {
+      background: rgba(17, 153, 142, 0.9);
+    }
+
+    .overlay-keep {
+      background: rgba(245, 87, 108, 0.9);
+    }
+
+    .empty-state {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .empty-state h2 {
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .empty-state p {
+      color: #666;
+    }
+
+    .progress-bar {
+      width: 320px;
+      height: 8px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 4px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: rgba(255,255,255,0.9);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .file-select {
+      margin-bottom: 20px;
+    }
+
+    .file-select select {
+      padding: 10px 20px;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255,255,255,0.9);
+      cursor: pointer;
+    }
+
+    .no-words {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      max-width: 400px;
+    }
+
+    .no-words h2 {
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .no-words p {
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .no-words code {
+      background: #f0f0f0;
+      padding: 10px;
+      display: block;
+      border-radius: 5px;
+      margin: 10px 0;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎴 Word Swiper</h1>
+  
+  <div id="file-select" class="file-select" style="display: none;">
+    <select id="words-file" onchange="loadFile()">
+      <option value="">Выберите файл слов...</option>
+    </select>
+  </div>
+
+  <div id="stats" class="stats" style="display: none;">
+    <div>Осталось: <strong id="remaining">0</strong> | Знаю: <strong id="known-count">0</strong> | Оставляю: <strong id="kept-count">0</strong></div>
+  </div>
+
+  <div class="progress-bar" id="progress-bar" style="display: none;">
+    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+  </div>
+
+  <div id="no-words" class="no-words" style="display: none;">
+    <h2>📚 Нет файлов слов</h2>
+    <p>Сначала распарсите книгу:</p>
+    <code>node index.js ваша-книга.epub</code>
+    <p>Затем перезапустите свайпер:</p>
+    <code>npm run swipe</code>
+  </div>
+
+  <div class="card-container" id="card-container" style="display: none;">
+    <div class="card" id="card">
+      <div class="overlay overlay-know" id="overlay-know">✓ ЗНАЮ</div>
+      <div class="overlay overlay-keep" id="overlay-keep">📌 ОСТАВИТЬ</div>
+      <div class="word" id="word">Loading...</div>
+      <div class="translation" id="translation"></div>
+      <div class="count" id="count"></div>
+    </div>
+  </div>
+
+  <div id="empty-state" class="empty-state" style="display: none;">
+    <h2>🎉 Готово!</h2>
+    <p>Все слова обработаны</p>
+    <p id="final-stats"></p>
+  </div>
+
+  <div class="buttons" id="buttons" style="display: none;">
+    <button class="btn btn-know" onclick="swipeWord('know')" title="Я знаю это слово (←)">✓</button>
+    <button class="btn btn-keep" onclick="swipeWord('keep')" title="Оставить в списке (→)">📌</button>
+  </div>
+
+  <div class="instructions" id="instructions" style="display: none;">
+    <span>←</span> Знаю слово &nbsp; | &nbsp; <span>→</span> Оставить в списке<br>
+    Или используйте кнопки ниже
+  </div>
+
+  <script>
+    let words = [];
+    let currentIndex = 0;
+    let knownWords = [];
+    let keptWords = [];
+    let currentFile = '';
+
+    // Загрузка списка файлов
+    async function loadFileList() {
+      try {
+        const response = await fetch('/api/files');
+        const files = await response.json();
+        
+        if (files.length === 0) {
+          document.getElementById('no-words').style.display = 'block';
+          return;
+        }
+
+        const select = document.getElementById('words-file');
+        files.forEach(file => {
+          const option = document.createElement('option');
+          option.value = file;
+          option.textContent = file;
+          select.appendChild(option);
+        });
+
+        document.getElementById('file-select').style.display = 'block';
+
+        // Автовыбор если один файл
+        if (files.length === 1) {
+          select.value = files[0];
+          loadFile();
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки списка файлов:', error);
+        document.getElementById('no-words').style.display = 'block';
+      }
+    }
+
+    // Загрузка слов из файла
+    async function loadFile() {
+      const select = document.getElementById('words-file');
+      currentFile = select.value;
+      
+      if (!currentFile) return;
+
+      try {
+        const response = await fetch(`/api/words?file=${encodeURIComponent(currentFile)}`);
+        const data = await response.json();
+        
+        words = data.words || [];
+        currentIndex = 0;
+        knownWords = [];
+        keptWords = [];
+
+        if (words.length === 0) {
+          showEmptyState('Файл пуст');
+          return;
+        }
+
+        showCard();
+      } catch (error) {
+        console.error('Ошибка загрузки слов:', error);
+        alert('Ошибка загрузки файла');
+      }
+    }
+
+    function showCard() {
+      document.getElementById('card-container').style.display = 'block';
+      document.getElementById('buttons').style.display = 'flex';
+      document.getElementById('instructions').style.display = 'block';
+      document.getElementById('stats').style.display = 'block';
+      document.getElementById('progress-bar').style.display = 'block';
+      document.getElementById('empty-state').style.display = 'none';
+      
+      updateCard();
+    }
+
+    function updateCard() {
+      if (currentIndex >= words.length) {
+        showEmptyState();
+        return;
+      }
+
+      const word = words[currentIndex];
+      document.getElementById('word').textContent = word.original;
+      document.getElementById('translation').textContent = word.translation || '';
+      document.getElementById('count').textContent = `встречается ${word.count} раз`;
+      
+      updateStats();
+    }
+
+    function updateStats() {
+      const remaining = words.length - currentIndex;
+      document.getElementById('remaining').textContent = remaining;
+      document.getElementById('known-count').textContent = knownWords.length;
+      document.getElementById('kept-count').textContent = keptWords.length;
+      
+      const progress = ((currentIndex) / words.length) * 100;
+      document.getElementById('progress-fill').style.width = progress + '%';
+    }
+
+    function swipeWord(action) {
+      const card = document.getElementById('card');
+      const overlayKnow = document.getElementById('overlay-know');
+      const overlayKeep = document.getElementById('overlay-keep');
+      
+      if (action === 'know') {
+        overlayKnow.style.opacity = '1';
+        card.classList.add('swiping-left');
+        knownWords.push(words[currentIndex].original);
+      } else {
+        overlayKeep.style.opacity = '1';
+        card.classList.add('swiping-right');
+        keptWords.push(words[currentIndex]);
+      }
+
+      setTimeout(() => {
+        card.classList.remove('swiping-left', 'swiping-right');
+        overlayKnow.style.opacity = '0';
+        overlayKeep.style.opacity = '0';
+        currentIndex++;
+        updateCard();
+      }, 300);
+    }
+
+    function showEmptyState(message) {
+      document.getElementById('card-container').style.display = 'none';
+      document.getElementById('buttons').style.display = 'none';
+      document.getElementById('instructions').style.display = 'none';
+      document.getElementById('empty-state').style.display = 'block';
+      document.getElementById('progress-bar').style.display = 'none';
+      
+      document.getElementById('final-stats').textContent = 
+        `Знаю: ${knownWords.length} | Оставлено: ${keptWords.length}`;
+
+      // Сохраняем известные слова
+      if (knownWords.length > 0) {
+        saveKnownWords();
+      }
+    }
+
+    async function saveKnownWords() {
+      try {
+        await fetch('/api/known-words', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ words: knownWords })
+        });
+        console.log('Известные слова сохранены');
+      } catch (error) {
+        console.error('Ошибка сохранения:', error);
+      }
+    }
+
+    // Обработка клавиатуры
+    document.addEventListener('keydown', (e) => {
+      if (currentIndex >= words.length) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        swipeWord('know');
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        swipeWord('keep');
+      }
+    });
+
+    // Поддержка свайпов на мобильных
+    let touchStartX = 0;
+    const card = document.getElementById('card');
+    
+    card.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    });
+
+    card.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const diff = touchEndX - touchStartX;
+      
+      if (Math.abs(diff) > 50) {
+        if (diff < 0) {
+          swipeWord('know');
+        } else {
+          swipeWord('keep');
+        }
+      }
+    });
+
+    // Загружаем список файлов при старте
+    loadFileList();
+  </script>
+</body>
+</html>
