@@ -6,8 +6,9 @@
   "scripts": {
     "start": "node index.js",
     "demo": "node examples/demo.js",
-    "test": "node tests/test-no-translate.js",
-    "test:freq": "node tests/test-min-frequency.js"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "epub",
@@ -25,5 +26,8 @@
     "@iamtraction/google-translate": "^2.0.1",
     "epub2": "^3.0.2",
     "natural": "^8.1.0"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
   }
 }

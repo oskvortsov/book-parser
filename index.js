@@ -6,12 +6,16 @@ const path = require('path');
 
 // Инициализация лемматизатора для английского языка
 const tokenizer = new natural.WordTokenizer();
-const { PorterStemmer } = natural;
+const { PorterStemmer, WordNet } = natural;
 
-// Используем встроенный WordNet для лемматизации
+// Инициализация WordNet для лемматизации
+const wordnet = new WordNet();
+
+// Используем WordNet для лемматизации
 class WordProcessor {
   constructor() {
     this.wordFrequency = new Map();
+    this.lemmaCache = new Map(); // Кэш для леммы
     this.stopWords = new Set([
       // Articles
       'the', 'a', 'an',
@@ -80,7 +84,34 @@ class WordProcessor {
     ]);
   }
 
-  // Нормализация слова: приведение к нижнему регистру и лемматизация
+  // Лемматизация слова с использованием WordNet
+  async lemmatizeWord(word) {
+    // Проверяем кэш
+    if (this.lemmaCache.has(word)) {
+      return this.lemmaCache.get(word);
+    }
+
+    return new Promise((resolve) => {
+      // Пробуем найти лемму через WordNet
+      wordnet.lookup(word, (results) => {
+        let lemma;
+
+        if (results && results.length > 0) {
+          // Берем первый результат (обычно самый частый)
+          lemma = results[0].lemma || word;
+        } else {
+          // Если WordNet не нашел, используем Porter Stemmer как fallback
+          lemma = PorterStemmer.stem(word);
+        }
+
+        // Сохраняем в кэш
+        this.lemmaCache.set(word, lemma);
+        resolve(lemma);
+      });
+    });
+  }
+
+  // Нормализация слова: приведение к нижнему регистру и очистка
   normalizeWord(word) {
     // Приводим к нижнему регистру
     let normalized = word.toLowerCase();
@@ -93,23 +124,33 @@ class WordProcessor {
       return null;
     }
 
-    // Используем стемминг для приведения к базовой форме
-    normalized = PorterStemmer.stem(normalized);
 
     return normalized;
   }
 
-  // Обработка текста
-  processText(text) {
+  // Обработка текста (асинхронная)
+  async processText(text) {
     const words = tokenizer.tokenize(text);
 
-    words.forEach(word => {
-      const normalized = this.normalizeWord(word);
-      if (normalized) {
-        const count = this.wordFrequency.get(normalized) || 0;
-        this.wordFrequency.set(normalized, count + 1);
-      }
-    });
+    // Обрабатываем слова батчами для производительности
+    const batchSize = 300;
+
+    for (let i = 0; i < words.length; i += batchSize) {
+      const batch = words.slice(i, i + batchSize);
+
+      const normalizeTasks = batch.map(async (word) => {
+        const normalized = this.normalizeWord(word);
+
+        if (normalized) {
+          // Лемматизируем слово
+          const lemma = await this.lemmatizeWord(normalized);
+          const count = this.wordFrequency.get(lemma) || 0;
+          this.wordFrequency.set(lemma, count + 1);
+        }
+      })
+
+      await Promise.all(normalizeTasks);
+    }
   }
 
   // Получение отсортированного списка слов по частоте
@@ -145,7 +186,7 @@ async function parseEpubBook(epubPath) {
 
           // Удаляем HTML теги
           const cleanText = chapterData.replace(/<[^>]*>/g, ' ');
-          processor.processText(cleanText);
+          await processor.processText(cleanText);
 
           console.log(`✓ Обработана глава ${i + 1}/${chapters.length}`);
         } catch (error) {
@@ -226,34 +267,36 @@ async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.log(`
-📚 Парсер EPUB книг с подсчетом частоты слов
 
-Использование:
-  node index.js <путь_к_epub_файлу> [количество_слов_для_перевода] [опции]
+  console.log(`
+📚  Парсер EPUB книг с подсчетом частоты слов
 
-Опции:
-  --no-translate              Отключить перевод (быстрый режим)
-  --min-freq <число>          Минимальная частота слова (по умолчанию: 1)
+    Использование:
+      node index.js <путь_к_epub_файлу> [количество_слов_для_перевода] [опции]
+    
+    Опции:
+      --no-translate              Отключить перевод (быстрый режим)
+      --min-freq <число>          Минимальная частота слова (по умолчанию: 1)
+    
+    Примеры:
+      node index.js ./book.epub                         # Переводит топ-100 слов
+      node index.js ./book.epub 200                     # Переводит топ-200 слов
+      node index.js ./book.epub 0                       # Без перевода
+      node index.js ./book.epub --no-translate          # Без перевода
+      node index.js ./book.epub 100 --min-freq 5        # Только слова встречающиеся >= 5 раз
+      node index.js ./book.epub --no-translate --min-freq 10  # Без перевода, слова >= 10 раз
+    
+    Что делает программа:
+      1. Парсит EPUB файл
+      2. Извлекает весь текст
+      3. Нормализует слова (приводит к базовой форме)
+      4. Подсчитывает частоту каждого слова
+      5. Фильтрует по минимальной частоте (опционально)
+      6. Сортирует по частоте встречаемости
+      7. Переводит топ N слов с английского на русский (опционально)
+      8. Сохраняет результаты в JSON и TXT файлы
+  `);
 
-Примеры:
-  node index.js ./book.epub                         # Переводит топ-100 слов
-  node index.js ./book.epub 200                     # Переводит топ-200 слов
-  node index.js ./book.epub 0                       # Без перевода
-  node index.js ./book.epub --no-translate          # Без перевода
-  node index.js ./book.epub 100 --min-freq 5        # Только слова встречающиеся >= 5 раз
-  node index.js ./book.epub --no-translate --min-freq 10  # Без перевода, слова >= 10 раз
-
-Что делает программа:
-  1. Парсит EPUB файл
-  2. Извлекает весь текст
-  3. Нормализует слова (приводит к базовой форме)
-  4. Подсчитывает частоту каждого слова
-  5. Фильтрует по минимальной частоте (опционально)
-  6. Сортирует по частоте встречаемости
-  7. Переводит топ N слов с английского на русский (опционально)
-  8. Сохраняет результаты в JSON и TXT файлы
-    `);
     process.exit(1);
   }
 
@@ -265,8 +308,10 @@ async function main() {
   // Получаем минимальную частоту слов
   let minFrequency = 1;
   const minFreqIndex = args.indexOf('--min-freq');
+
   if (minFreqIndex !== -1 && args[minFreqIndex + 1]) {
     minFrequency = parseInt(args[minFreqIndex + 1]);
+
     if (isNaN(minFrequency) || minFrequency < 1) {
       console.error(`❌ Неверное значение для --min-freq: ${args[minFreqIndex + 1]}`);
       console.error(`   Должно быть положительное число >= 1`);
@@ -298,10 +343,12 @@ async function main() {
 
     console.log(`\n📊 Статистика:`);
     console.log(`   Всего уникальных слов: ${allWords.length}`);
+
     if (minFrequency > 1) {
       console.log(`   Слов с частотой >= ${minFrequency}: ${sortedWords.length}`);
       console.log(`   Исключено редких слов: ${allWords.length - sortedWords.length}`);
     }
+
     console.log(`   Всего слов в книге: ${allWords.reduce((sum, w) => sum + w.count, 0)}`);
     console.log(`\n🔝 Топ-10 самых частых слов:`);
     sortedWords.slice(0, 10).forEach((w, i) => {

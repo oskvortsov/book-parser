@@ -83,20 +83,18 @@ node index.js
 ## 🧪 Тестирование
 
 ```bash
+# Запуск всех тестов (Jest)
+npm test
+
+# Тесты с отслеживанием изменений
+npm run test:watch
+
+# Тесты с покрытием кода
+npm run test:coverage
+
 # Демонстрация нормализации
 npm run demo
-
-# Тест без перевода
-npm test
 ```
-
-## 📚 Документация
-
-Полная документация в папке [`docs/`](docs/):
-
-- **[QUICKSTART.md](docs/QUICKSTART.md)** - быстрый старт с примерами
-- **[CHEATSHEET.md](docs/CHEATSHEET.md)** - шпаргалка по всем режимам
-- **[PROJECT.md](docs/PROJECT.md)** - техническое описание
 
 ## 📁 Структура проекта
 
@@ -104,22 +102,14 @@ npm test
 book-parser/
 ├── 📄 index.js              # Основная программа
 ├── 📄 package.json          # Конфигурация
-├── 📁 docs/                 # 📚 Документация
-│   ├── README.md            #    Индекс документации
-│   ├── QUICKSTART.md        #    Быстрый старт ⭐
-│   ├── CHEATSHEET.md        #    Шпаргалка ⭐
-│   ├── START.md             #    Руководство
-│   ├── FULL_README.md       #    Полная документация
-│   ├── PROJECT.md           #    Техническое описание
-│   └── CHANGELOG.md         #    История изменений
-├── 📁 examples/             # 💡 Примеры
+├── 📁 examples/             # Примеры использования
 │   ├── demo.js              #    Демонстрация
 │   └── example.js           #    Примеры API
 └── 📁 tests/                # 🧪 Тесты
-    └── test-no-translate.js #    Тест без перевода
+
 ```
 
-**Подробнее:** [STRUCTURE.md](STRUCTURE.md)
+**Подробнее:** [STRUCTURE.md](docs/STRUCTURE.md)
 
 ## 🎯 Типичные сценарии
 
