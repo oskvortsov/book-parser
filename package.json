@@ -1,0 +1,29 @@
+{
+  "name": "book-parser",
+  "version": "1.0.0",
+  "description": "EPUB book parser with word frequency analysis, lemmatization, and translation to Russian",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "demo": "node examples/demo.js",
+    "test": "node tests/test-no-translate.js",
+    "test:freq": "node tests/test-min-frequency.js"
+  },
+  "keywords": [
+    "epub",
+    "parser",
+    "book",
+    "word-frequency",
+    "lemmatization",
+    "translation",
+    "nlp"
+  ],
+  "author": "",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@iamtraction/google-translate": "^2.0.1",
+    "epub2": "^3.0.2",
+    "natural": "^8.1.0"
+  }
+}

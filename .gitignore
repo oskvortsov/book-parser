@@ -1,0 +1,25 @@
+# Node modules
+node_modules/
+
+# Output files
+*_words.json
+*_words.txt
+
+# EPUB files (optional - uncomment if you don't want to track books)
+# *.epub
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.epub
+
