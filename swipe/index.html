@@ -466,22 +466,24 @@
     let touchStartX = 0;
     const card = document.getElementById('card');
     
-    card.addEventListener('touchstart', (e) => {
-      touchStartX = e.touches[0].clientX;
-    });
+    if (card) {
+      card.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+      });
 
-    card.addEventListener('touchend', (e) => {
-      const touchEndX = e.changedTouches[0].clientX;
-      const diff = touchEndX - touchStartX;
-      
-      if (Math.abs(diff) > 50) {
-        if (diff < 0) {
-          swipeWord('know');
-        } else {
-          swipeWord('keep');
+      card.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const diff = touchEndX - touchStartX;
+        
+        if (Math.abs(diff) > 50) {
+          if (diff < 0) {
+            swipeWord('know');
+          } else {
+            swipeWord('keep');
+          }
         }
-      }
-    });
+      });
+    }
 
     // Загружаем список файлов при старте
     loadFileList();

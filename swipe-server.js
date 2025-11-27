@@ -81,7 +81,17 @@ function handleRequest(req, res) {
       return;
     }
 
-    const filePath = path.resolve(process.cwd(), fileName);
+    // Validate file path to prevent path traversal attacks
+    const normalizedFileName = path.normalize(fileName).replace(/^(\.\.(\/|\\|$))+/, '');
+    const filePath = path.resolve(process.cwd(), normalizedFileName);
+    const cwd = process.cwd();
+    
+    // Ensure the file is within the current working directory
+    if (!filePath.startsWith(cwd)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Access denied' }));
+      return;
+    }
     
     if (!fs.existsSync(filePath)) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -180,15 +190,23 @@ server.listen(PORT, () => {
    Нажмите Ctrl+C для остановки
 `);
 
-  // Автоматически открываем браузер
-  const openCommand = process.platform === 'darwin' ? 'open' :
-                      process.platform === 'win32' ? 'start' : 'xdg-open';
+  // Автоматически открываем браузер (whitelist of allowed commands)
+  const openCommands = {
+    'darwin': 'open',
+    'win32': 'start',
+    'linux': 'xdg-open'
+  };
   
-  require('child_process').exec(`${openCommand} http://localhost:${PORT}`, (err) => {
-    if (err) {
-      console.log('   ⚠️ Не удалось открыть браузер автоматически');
-    }
-  });
+  const openCommand = openCommands[process.platform];
+  const url = `http://localhost:${PORT}`;
+  
+  if (openCommand) {
+    require('child_process').exec(`${openCommand} ${url}`, (err) => {
+      if (err) {
+        console.log('   ⚠️ Не удалось открыть браузер автоматически');
+      }
+    });
+  }
 });
 
 // Graceful shutdown
