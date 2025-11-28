@@ -19,6 +19,7 @@
       flex-direction: column;
       align-items: center;
       padding: 20px;
+      width: 100%;
     }
 
     h1 {
@@ -203,6 +204,10 @@
 
     .file-select {
       margin-bottom: 20px;
+      display: flex;
+      width: 100%;
+      max-width: 320px;
+      overflow: hidden;
     }
 
     .file-select select {
@@ -212,7 +217,9 @@
       border: none;
       background: rgba(255,255,255,0.9);
       cursor: pointer;
-      width: 100%;
+      min-width: 0;
+      flex: 1;
+      margin-right: 6px;
     }
 
     .no-words {
@@ -242,15 +249,51 @@
       margin: 10px 0;
       font-family: monospace;
     }
+
+    .save-progress-btn {
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #667eea;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+      display: none;
+    }
+
+    .save-progress-btn:hover {
+      background: white;
+      transform: translateY(-2px);
+      box-shadow: 0 7px 20px rgba(0,0,0,0.3);
+    }
+
+    .save-progress-btn:active {
+      transform: translateY(0);
+    }
+
+    .save-progress-btn.saving {
+      background: #38ef7d;
+      color: white;
+    }
+
+    .save-progress-btn.saved {
+      background: #11998e;
+      color: white;
+    }
   </style>
 </head>
 <body>
   <h1>🎴 Word Swiper</h1>
   
-  <div id="file-select" class="file-select" style="display: none;">
+  <div id="file-select" class="file-select">
     <select id="words-file" onchange="loadFile()">
       <option value="">Выберите файл слов...</option>
     </select>
+
+    <button id="save-progress-btn" class="save-progress-btn" onclick="saveProgress()">💾</button>
   </div>
 
   <div id="stats" class="stats" style="display: none;">
@@ -321,8 +364,6 @@
           select.appendChild(option);
         });
 
-        document.getElementById('file-select').style.display = 'block';
-
         // Автовыбор если один файл
         if (files.length === 1) {
           select.value = files[0];
@@ -369,7 +410,8 @@
       document.getElementById('stats').style.display = 'block';
       document.getElementById('progress-bar').style.display = 'block';
       document.getElementById('empty-state').style.display = 'none';
-      
+      document.getElementById('save-progress-btn').style.display = 'block';
+
       updateCard();
     }
 
@@ -412,6 +454,14 @@
         keptWords.push(words[currentIndex]);
       }
 
+      // Enable save button after first action
+      const saveBtn = document.getElementById('save-progress-btn');
+      if (knownWords.length > 0 || keptWords.length > 0) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾';
+        saveBtn.classList.remove('saved', 'saving');
+      }
+
       setTimeout(() => {
         card.classList.remove('swiping-left', 'swiping-right');
         overlayKnow.style.opacity = '0';
@@ -447,6 +497,54 @@
         console.log('Известные слова сохранены');
       } catch (error) {
         console.error('Ошибка сохранения:', error);
+      }
+    }
+
+    async function saveProgress() {
+      const saveBtn = document.getElementById('save-progress-btn');
+
+      if (knownWords.length === 0) {
+        alert('Нет слов для сохранения. Сначала пометьте слова как "Знаю".');
+        return;
+      }
+
+      // Показываем статус "Сохраняется..."
+      saveBtn.textContent = '⏳';
+      saveBtn.classList.add('saving');
+      saveBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/known-words', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ words: knownWords })
+        });
+
+        const result = await response.json();
+
+        // Показываем статус "Сохранено"
+        saveBtn.textContent = `✓ Сохранено (${result.added} слов)`;
+        saveBtn.classList.remove('saving');
+        saveBtn.classList.add('saved');
+
+        console.log(`Сохранено ${result.added} слов. Всего известных: ${result.total}`);
+
+        // Возвращаем кнопку в исходное состояние через 2 секунды
+        setTimeout(() => {
+          saveBtn.textContent = '💾 Сохранить прогресс';
+          saveBtn.classList.remove('saved');
+          saveBtn.disabled = false;
+        }, 2000);
+
+      } catch (error) {
+        console.error('Ошибка сохранения:', error);
+        saveBtn.textContent = '❌ Ошибка!';
+        saveBtn.disabled = false;
+
+        setTimeout(() => {
+          saveBtn.textContent = '💾 Сохранить прогресс';
+          saveBtn.classList.remove('saving');
+        }, 2000);
       }
     }
 

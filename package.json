@@ -7,6 +7,7 @@
     "start": "node index.js",
     "demo": "node examples/demo.js",
     "swipe": "node swipe-server.js",
+    "parse": "node index.js The_Hobbit_Illustrated_by_J_R_R_Tolkien.epub --no-translate --min-freq 10",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"

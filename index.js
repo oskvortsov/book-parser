@@ -152,6 +152,13 @@ class WordProcessor {
           // Лемматизируем слово
           const lemma = await this.lemmatizeWord(normalized);
           const count = this.wordFrequency.get(lemma) || 0;
+
+          // Пропускаем известные слова (если включена фильтрация)
+          const isKnownWord = this.excludeKnownWords && this.knownWords.has(lemma);
+          if (isKnownWord) {
+            return
+          }
+
           this.wordFrequency.set(lemma, count + 1);
         }
       })
@@ -354,9 +361,8 @@ async function main() {
     const knownWordsCount = KnownWords.getWordsCount();
     console.log(`\n🚀 Начинаем обработку: ${epubPath}`);
     if (knownWordsCount > 0 && excludeKnownWords) {
-      console.log(`📝 Исключаем ${knownWordsCount} известных слов из known-words.json`);
+      console.log(`📝 Исключаем ${knownWordsCount} известных слов из known-words.json\n`);
     }
-    console.log();
 
     // Парсим книгу
     const processor = await parseEpubBook(epubPath, { excludeKnownWords });

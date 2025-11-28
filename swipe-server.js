@@ -176,10 +176,28 @@ const server = http.createServer(handleRequest);
 server.listen(PORT, () => {
   const knownCount = KnownWords.getWordsCount();
 
+  // Получаем локальный IP-адрес
+  const os = require('os');
+  const networkInterfaces = os.networkInterfaces();
+  let localIP = 'localhost';
+
+  // Ищем первый IPv4 адрес, который не является loopback
+  for (const interfaceName in networkInterfaces) {
+    const interfaces = networkInterfaces[interfaceName];
+    for (const iface of interfaces) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        localIP = iface.address;
+        break;
+      }
+    }
+    if (localIP !== 'localhost') break;
+  }
+
   console.log(`
 🎴 Word Swiper запущен!
 
    Откройте в браузере: http://localhost:${PORT}
+   Или на другом устройстве: http://${localIP}:${PORT}
    
    📝 Известных слов: ${knownCount}
    
