@@ -80,7 +80,7 @@ node index.js book.epub 100 --min-freq 5
 # Без перевода, только очень частые слова
 node index.js book.epub --no-translate --min-freq 10
 
-# Включить известные слова
+# Включить известные слова (по умолчанию исключает слова которые уже известны)
 node index.js book.epub --include-known
 
 # Показать справку

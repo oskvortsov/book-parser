@@ -3,7 +3,7 @@ const natural = require('natural');
 const translate = require('@iamtraction/google-translate');
 const fs = require('fs');
 const path = require('path');
-const { loadKnownWords } = require('./known-words');
+const KnownWords = require('./known-words');
 
 // Инициализация лемматизатора для английского языка
 const tokenizer = new natural.WordTokenizer();
@@ -18,7 +18,7 @@ class WordProcessor {
     this.wordFrequency = new Map();
     this.lemmaCache = new Map(); // Кэш для леммы
     this.excludeKnownWords = options.excludeKnownWords !== false; // По умолчанию true
-    this.knownWords = this.excludeKnownWords ? loadKnownWords() : new Set();
+    this.knownWords = this.excludeKnownWords ? KnownWords.load() : new Set();
     this.stopWords = new Set([
       // Articles
       'the', 'a', 'an',
@@ -272,7 +272,6 @@ function saveResults(words, outputPath) {
 // Главная функция
 async function main() {
   const args = process.argv.slice(2);
-  const { getKnownWordsCount } = require('./known-words');
 
   if (args.length === 0) {
 
@@ -352,7 +351,7 @@ async function main() {
   }
 
   try {
-    const knownWordsCount = getKnownWordsCount();
+    const knownWordsCount = KnownWords.getWordsCount();
     console.log(`\n🚀 Начинаем обработку: ${epubPath}`);
     if (knownWordsCount > 0 && excludeKnownWords) {
       console.log(`📝 Исключаем ${knownWordsCount} известных слов из known-words.json`);

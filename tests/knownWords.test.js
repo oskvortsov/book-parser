@@ -1,15 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { 
-  loadKnownWords, 
-  saveKnownWords, 
-  addKnownWords, 
-  removeKnownWord,
-  isKnownWord,
-  getKnownWordsCount,
-  clearKnownWords,
-  KNOWN_WORDS_FILE 
-} = require('../known-words');
+const KnownWords = require('../known-words');
 const { WordProcessor } = require('../index');
 
 describe('Known Words Module', () => {
@@ -17,29 +8,29 @@ describe('Known Words Module', () => {
   let originalContent = null;
   
   beforeAll(() => {
-    if (fs.existsSync(KNOWN_WORDS_FILE)) {
-      originalContent = fs.readFileSync(KNOWN_WORDS_FILE, 'utf-8');
+    if (fs.existsSync(KnownWords.KNOWN_WORDS_FILE)) {
+      originalContent = fs.readFileSync(KnownWords.KNOWN_WORDS_FILE, 'utf-8');
     }
   });
 
   afterAll(() => {
     if (originalContent !== null) {
-      fs.writeFileSync(KNOWN_WORDS_FILE, originalContent, 'utf-8');
-    } else if (fs.existsSync(KNOWN_WORDS_FILE)) {
-      fs.unlinkSync(KNOWN_WORDS_FILE);
+      fs.writeFileSync(KnownWords.KNOWN_WORDS_FILE, originalContent, 'utf-8');
+    } else if (fs.existsSync(KnownWords.KNOWN_WORDS_FILE)) {
+      fs.unlinkSync(KnownWords.KNOWN_WORDS_FILE);
     }
   });
 
   beforeEach(() => {
-    clearKnownWords();
+    KnownWords.clear();
   });
 
   describe('saveKnownWords и loadKnownWords', () => {
     test('должен сохранять и загружать слова', () => {
       const words = ['hello', 'world', 'test'];
-      saveKnownWords(words);
-      
-      const loaded = loadKnownWords();
+      KnownWords.save(words);
+
+      const loaded = KnownWords.load();
       expect(loaded.size).toBe(3);
       expect(loaded.has('hello')).toBe(true);
       expect(loaded.has('world')).toBe(true);
@@ -47,55 +38,55 @@ describe('Known Words Module', () => {
     });
 
     test('должен возвращать пустой Set если файл не существует', () => {
-      if (fs.existsSync(KNOWN_WORDS_FILE)) {
-        fs.unlinkSync(KNOWN_WORDS_FILE);
+      if (fs.existsSync(KnownWords.KNOWN_WORDS_FILE)) {
+        fs.unlinkSync(KnownWords.KNOWN_WORDS_FILE);
       }
       
-      const loaded = loadKnownWords();
+      const loaded = KnownWords.load();
       expect(loaded.size).toBe(0);
     });
 
     test('должен сохранять слова отсортированными', () => {
       const words = ['zebra', 'apple', 'mango'];
-      saveKnownWords(words);
-      
-      const content = JSON.parse(fs.readFileSync(KNOWN_WORDS_FILE, 'utf-8'));
+      KnownWords.save(words);
+
+      const content = JSON.parse(fs.readFileSync(KnownWords.KNOWN_WORDS_FILE, 'utf-8'));
       expect(content.words).toEqual(['apple', 'mango', 'zebra']);
     });
   });
 
   describe('addKnownWords', () => {
     test('должен добавлять новые слова', () => {
-      addKnownWords(['hello', 'world']);
-      addKnownWords(['test']);
-      
-      const loaded = loadKnownWords();
+      KnownWords.add(['hello', 'world']);
+      KnownWords.add(['test']);
+
+      const loaded = KnownWords.load();
       expect(loaded.size).toBe(3);
     });
 
     test('должен приводить слова к нижнему регистру', () => {
-      addKnownWords(['HELLO', 'World', 'TEST']);
-      
-      const loaded = loadKnownWords();
+      KnownWords.add(['HELLO', 'World', 'TEST']);
+
+      const loaded = KnownWords.load();
       expect(loaded.has('hello')).toBe(true);
       expect(loaded.has('world')).toBe(true);
       expect(loaded.has('test')).toBe(true);
     });
 
     test('не должен дублировать слова', () => {
-      addKnownWords(['hello', 'hello', 'HELLO']);
-      
-      const loaded = loadKnownWords();
+      KnownWords.add(['hello', 'hello', 'HELLO']);
+
+      const loaded = KnownWords.load();
       expect(loaded.size).toBe(1);
     });
   });
 
   describe('removeKnownWord', () => {
     test('должен удалять слово', () => {
-      addKnownWords(['hello', 'world']);
-      removeKnownWord('hello');
-      
-      const loaded = loadKnownWords();
+      KnownWords.add(['hello', 'world']);
+      KnownWords.remove('hello');
+
+      const loaded = KnownWords.load();
       expect(loaded.size).toBe(1);
       expect(loaded.has('hello')).toBe(false);
       expect(loaded.has('world')).toBe(true);
@@ -104,29 +95,29 @@ describe('Known Words Module', () => {
 
   describe('isKnownWord', () => {
     test('должен проверять наличие слова', () => {
-      addKnownWords(['hello']);
-      
-      expect(isKnownWord('hello')).toBe(true);
-      expect(isKnownWord('HELLO')).toBe(true);
-      expect(isKnownWord('world')).toBe(false);
+      KnownWords.add(['hello']);
+
+      expect(KnownWords.isKnown('hello')).toBe(true);
+      expect(KnownWords.isKnown('HELLO')).toBe(true);
+      expect(KnownWords.isKnown('world')).toBe(false);
     });
   });
 
   describe('getKnownWordsCount', () => {
     test('должен возвращать количество слов', () => {
-      expect(getKnownWordsCount()).toBe(0);
-      
-      addKnownWords(['hello', 'world']);
-      expect(getKnownWordsCount()).toBe(2);
+      expect(KnownWords.getWordsCount()).toBe(0);
+
+      KnownWords.add(['hello', 'world']);
+      expect(KnownWords.getWordsCount()).toBe(2);
     });
   });
 
   describe('clearKnownWords', () => {
     test('должен очищать все слова', () => {
-      addKnownWords(['hello', 'world']);
-      clearKnownWords();
-      
-      expect(getKnownWordsCount()).toBe(0);
+      KnownWords.add(['hello', 'world']);
+      KnownWords.clear();
+
+      expect(KnownWords.getWordsCount()).toBe(0);
     });
   });
 });

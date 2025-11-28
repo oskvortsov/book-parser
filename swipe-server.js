@@ -7,7 +7,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { addKnownWords, loadKnownWords, getKnownWordsCount } = require('./known-words');
+const KnownWords = require('./known-words');
 
 const PORT = process.env.PORT || 3000;
 
@@ -103,8 +103,8 @@ function handleRequest(req, res) {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
       
       // Фильтруем уже известные слова
-      const knownWords = loadKnownWords();
-      const filteredWords = (data.words || []).filter(w => 
+      const knownWords = KnownWords.load();
+      const filteredWords = (data.words || []).filter(w =>
         !knownWords.has(w.original?.toLowerCase())
       );
 
@@ -135,7 +135,7 @@ function handleRequest(req, res) {
         const words = data.words || [];
         
         if (words.length > 0) {
-          addKnownWords(words);
+          KnownWords.add(words);
           console.log(`✓ Добавлено ${words.length} известных слов`);
         }
 
@@ -143,7 +143,7 @@ function handleRequest(req, res) {
         res.end(JSON.stringify({ 
           success: true, 
           added: words.length,
-          total: getKnownWordsCount()
+          total: KnownWords.getWordsCount()
         }));
       } catch (error) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -155,8 +155,8 @@ function handleRequest(req, res) {
 
   // API: Получить известные слова
   if (url.pathname === '/api/known-words' && req.method === 'GET') {
-    const knownWords = loadKnownWords();
-    
+    const knownWords = KnownWords.load();
+
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       count: knownWords.size,
@@ -174,8 +174,8 @@ function handleRequest(req, res) {
 const server = http.createServer(handleRequest);
 
 server.listen(PORT, () => {
-  const knownCount = getKnownWordsCount();
-  
+  const knownCount = KnownWords.getWordsCount();
+
   console.log(`
 🎴 Word Swiper запущен!
 
