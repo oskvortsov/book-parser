@@ -5,6 +5,9 @@ node_modules/
 *_words.json
 *_words.txt
 
+# Known words file (user-specific)
+known-words.json
+
 # EPUB files (optional - uncomment if you don't want to track books)
 # *.epub
 
